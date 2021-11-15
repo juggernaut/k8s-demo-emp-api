@@ -27,6 +27,13 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/employees", createEmployee(db)).Methods("POST").Headers("Content-Type", "application/x-www-form-urlencoded")
 	r.HandleFunc("/employees", getEmployees(db)).Methods("GET")
+	// Healthcheck endpoint for kubernetes
+	r.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if _, err := fmt.Fprint(w, "OK\n"); err != nil {
+			log.Printf("Failed to write healthcheck response: %s\n", err)
+		}
+	}).Methods("GET")
     log.Fatal(http.ListenAndServe(":9090", r))
 }
 
