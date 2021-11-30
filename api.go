@@ -27,10 +27,39 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/employees", createEmployee(db)).Methods("POST").Headers("Content-Type", "application/x-www-form-urlencoded")
 	r.HandleFunc("/employees", getEmployees(db)).Methods("GET")
+	poisoned := false
+
+	r.HandleFunc("/poisonPill", func(w http.ResponseWriter, req *http.Request) {
+		if err := req.ParseForm(); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		poisonedParam := req.PostFormValue("Poisoned")
+		if poisonedParam == "" {
+			poisonedParam = "1"
+		}
+		if poisonedParam == "1" {
+			poisoned = true
+		} else if poisonedParam == "0" {
+			poisoned = false
+		} else {
+			http.Error(w, "Invalid 'Poisoned' param", 400)
+			return
+		}
+		w.WriteHeader(200)
+		fmt.Fprintf(w, "Set poisoned to %v\n", poisoned)
+	})
+
 	// Healthcheck endpoint for kubernetes
 	r.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if _, err := fmt.Fprint(w, "OK\n"); err != nil {
+		status := http.StatusOK
+		responseStr := "OK"
+		if poisoned {
+			status = http.StatusInternalServerError
+			responseStr = "UNHEALTHY"
+		}
+		w.WriteHeader(status)
+		if _, err := fmt.Fprintf(w, "%s\n", responseStr); err != nil {
 			log.Printf("Failed to write healthcheck response: %s\n", err)
 		}
 	}).Methods("GET")
