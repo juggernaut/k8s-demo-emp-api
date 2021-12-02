@@ -1,4 +1,4 @@
 *.sqlite
 .idea/
 *.crt
-*.yaml
+/*.yaml

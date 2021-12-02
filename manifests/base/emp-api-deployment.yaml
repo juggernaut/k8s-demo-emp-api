@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-demo-emp-api-deployment
+spec:
+  selector:
+    matchLabels:
+      app: k8s-demo-emp-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: k8s-demo-emp-api
+    spec:
+      containers:
+      - name: k8s-demo-emp-api
+        image: juggernaut/k8s-demo-emp-api:latest
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9090
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        env:
+          - name: "DB_USER"
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: db_user
+          - name: "DB_PASSWORD"
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: db_password
+          - name: "DB_NAME"
+            valueFrom:
+              configMapKeyRef:
+                name: dbparams
+                key: db_name
+          - name: "DB_HOST"
+            valueFrom:
+              configMapKeyRef:
+                name: dbparams
+                key: db_host
+          - name: "DB_PORT"
+            valueFrom:
+              configMapKeyRef:
+                name: dbparams
+                key: db_port
+          - name: "DB_DRIVER_NAME"
+            value: "postgres"
+          - name: "DB_CONNECTION_STRING"
+            value: "host=$(DB_HOST) port=$(DB_PORT) user=$(DB_USER) password=$(DB_PASSWORD) dbname=$(DB_NAME) sslmode=verify-full sslrootcert=/dbparams/cacertificate.crt"
+        volumeMounts:
+          - name: "dbparams"
+            mountPath: "/dbparams"
+            readOnly: true
+        ports:
+        - containerPort: 9090
+      volumes:
+        - name: "dbparams"
+          configMap:
+            name: "dbparams"

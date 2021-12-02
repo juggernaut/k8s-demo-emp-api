@@ -1,0 +1,11 @@
+bases:
+  - ../base
+patchesJson6902:
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: ingress-to-emp-api
+    path: ingress_hostname_patch.yaml
+    
+
