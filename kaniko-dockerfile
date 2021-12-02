@@ -1,0 +1,7 @@
+FROM gcr.io/distroless/base-debian11
+WORKDIR /root/
+COPY k8s-demo-emp-api ./
+
+EXPOSE 9090
+
+CMD ["./k8s-demo-emp-api"]
