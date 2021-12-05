@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"database/sql"
@@ -22,7 +22,7 @@ type Employees struct {
 	Employees []Employee `json:"employees"`
 }
 
-func main() {
+func ServeApi() {
 	db := getDBHandle()
 	r := mux.NewRouter()
 	r.HandleFunc("/employees", createEmployee(db)).Methods("POST").Headers("Content-Type", "application/x-www-form-urlencoded")

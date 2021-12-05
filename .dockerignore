@@ -1,0 +1,6 @@
+*.sqlite
+.idea/*
+*.crt
+*.yaml
+manifests/*
+tekton/*
