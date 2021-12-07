@@ -12,4 +12,4 @@ resources:
 images:
 - name: juggernaut/k8s-demo-emp-api
   newName: juggernaut/k8s-demo-emp-api
-  newTag: bfb9fca
+  newTag: c656944
