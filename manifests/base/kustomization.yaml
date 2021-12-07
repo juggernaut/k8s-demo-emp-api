@@ -1,4 +1,0 @@
-resources:
-  - emp-api-deployment.yaml
-  - emp-api-svc.yaml
-  - emp-api-ingress.yaml
