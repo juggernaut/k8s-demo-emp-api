@@ -10,6 +10,6 @@ kind: Kustomization
 resources:
 - ../base
 images:
-- digest: sha256:3c7c767ace4cb1b2ea06001862e553a2c2479047eb29881ed78e37b90cfbd70b
-  name: juggernaut/k8s-demo-emp-api
+- name: juggernaut/k8s-demo-emp-api
   newName: juggernaut/k8s-demo-emp-api
+  newTag: bfb9fca
