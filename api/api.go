@@ -8,12 +8,14 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3" // for local testing
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 )
 
 type Employee struct {
+	Id string `json:"id"`
 	Name string `json:"name"`
 	Age int `json:"age"`
 }
@@ -27,6 +29,7 @@ func ServeApi() {
 	r := mux.NewRouter()
 	r.HandleFunc("/employees", createEmployee(db)).Methods("POST").Headers("Content-Type", "application/x-www-form-urlencoded")
 	r.HandleFunc("/employees", getEmployees(db)).Methods("GET")
+	r.HandleFunc("/employees/{empId}", getEmployee(db)).Methods("GET")
 	poisoned := false
 
 	r.HandleFunc("/poisonPill", func(w http.ResponseWriter, req *http.Request) {
@@ -110,11 +113,13 @@ func createEmployee(db *sql.DB) func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "'Age' must be between 18 and 150", http.StatusBadRequest)
 			return
 		}
-		if _, err = db.ExecContext(r.Context(), `INSERT INTO employees (name, age) VALUES ($1, $2)`, name, ageI); err != nil {
+		empId := getEmpId()
+		if _, err = db.ExecContext(r.Context(), `INSERT INTO employees (id, name, age) VALUES ($1, $2, $3)`, empId, name, ageI); err != nil {
 			http.Error(w, fmt.Sprintf("DB error: %s", err), http.StatusInternalServerError)
 			return
 		}
 		emp := Employee{
+			Id: empId,
 			Name: name,
 			Age:  ageI,
 		}
@@ -127,9 +132,18 @@ func createEmployee(db *sql.DB) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getEmpId() string {
+	var idB []byte
+	for i := 0; i < 8; i++ {
+		r := rand.Intn(10)
+		idB = append(idB, '0' + byte(r))
+	}
+	return string(idB)
+}
+
 func getEmployees(db *sql.DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		rows, err := db.QueryContext(r.Context(), `SELECT name, age FROM employees LIMIT 10`)
+		rows, err := db.QueryContext(r.Context(), `SELECT id, name, age FROM employees LIMIT 10`)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error querying database: %s", err), http.StatusInternalServerError)
 			return
@@ -138,7 +152,7 @@ func getEmployees(db *sql.DB) func(w http.ResponseWriter, r *http.Request) {
 		var result []Employee
 		for rows.Next() {
 			emp := Employee{}
-			if err := rows.Scan(&emp.Name, &emp.Age); err != nil {
+			if err := rows.Scan(&emp.Id, &emp.Name, &emp.Age); err != nil {
 				http.Error(w, fmt.Sprintf("Error scanning rows: %s", err), http.StatusInternalServerError)
 				return
 			}
@@ -150,6 +164,37 @@ func getEmployees(db *sql.DB) func(w http.ResponseWriter, r *http.Request) {
 		encoder := json.NewEncoder(w)
 		if err := encoder.Encode(employees); err != nil {
 			log.Fatalf("Failed to json encode employees: %s", err)
+		}
+	}
+}
+func getEmployee(db *sql.DB) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		rows, err := db.QueryContext(r.Context(), `SELECT id, name, age FROM employees WHERE id = $1`, vars["empId"])
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error querying database: %s", err), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+		var result *Employee
+		for rows.Next() {
+			emp := Employee{}
+			if err := rows.Scan(&emp.Id, &emp.Name, &emp.Age); err != nil {
+				http.Error(w, fmt.Sprintf("Error scanning rows: %s", err), http.StatusInternalServerError)
+				return
+			}
+			result = &emp
+			break
+		}
+		if result == nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		encoder := json.NewEncoder(w)
+		if err := encoder.Encode(result); err != nil {
+			log.Fatalf("Failed to json encode employee: %s", err)
 		}
 	}
 }

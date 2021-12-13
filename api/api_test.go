@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const CREATE_TABLE = `CREATE TABLE employees (name varchar(256) NOT NULL, age int NOT NULL)`
+const CREATE_TABLE = `CREATE TABLE employees (id char(8) PRIMARY KEY NOT NULL, name varchar(256) NOT NULL, age int NOT NULL)`
 
 func createSqliteDB() *sql.DB {
 	f, err := os.Create("emp-api.sqlite")
